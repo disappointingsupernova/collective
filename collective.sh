@@ -82,7 +82,7 @@ check_gpg_key_installed() {
 }
 
 generate_passphrase() {
-    openssl rand -base64 96
+    openssl rand -base64 256 | tr -d '\n'
 }
 
 prompt_for_config() {
