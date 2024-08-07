@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Script version
+SCRIPT_VERSION="1.0.0"
+
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
 OUTPUT_FILE="/root/pgp_message.txt"
@@ -10,6 +13,11 @@ ON_SUCCESS=""
 ON_WARNING=""
 ON_FAILURE=""
 
+GITHUB_ACCOUNT="disappointingsupernova"
+REPO_NAME="collective"
+SCRIPT_NAME="collective.sh"
+GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
+VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 
 log() {
@@ -50,6 +58,7 @@ Options:
   -s CMD       Command to run on successful completion
   -w CMD       Command to run on completion with warnings
   -f CMD       Command to run on failure
+  -u, --update Update the script to the latest version from GitHub
   -h, --help   Show this help message and exit"
 }
 
@@ -82,7 +91,7 @@ check_gpg_key_installed() {
 }
 
 generate_passphrase() {
-    openssl rand -base64 256 | tr -d '\n'
+    openssl rand -base64 96 | tr -d '\n'
 }
 
 prompt_for_config() {
@@ -129,10 +138,24 @@ initialize_borg_repo() {
     fi
 }
 
+update_script() {
+    echo "Checking for updates..."
+    LATEST_VERSION=$(curl -sSL $VERSION_URL)
+    if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
+        echo "Updating script from $GITHUB_URL..."
+        curl -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
+        echo "Script updated to version $LATEST_VERSION."
+        exit 0
+    else
+        echo "You are already using the latest version ($SCRIPT_VERSION)."
+        exit 0
+    fi
+}
+
 trap 'log "Backup interrupted"; exit 2' INT TERM
 
 # Parse command-line arguments
-while getopts ":c:l:e:s:w:f:h-:" opt; do
+while getopts ":c:l:e:s:w:f:uh-:" opt; do
   case ${opt} in
     c )
       BORG_CONFIG_FILE=$OPTARG
@@ -152,6 +175,9 @@ while getopts ":c:l:e:s:w:f:h-:" opt; do
     f )
       ON_FAILURE=$OPTARG
       ;;
+    u )
+      update_script
+      ;;
     h )
       show_help
       exit 0
@@ -161,6 +187,9 @@ while getopts ":c:l:e:s:w:f:h-:" opt; do
         help)
           show_help
           exit 0
+          ;;
+        update)
+          update_script
           ;;
         *)
           echo "Invalid option: --${OPTARG}" 1>&2
@@ -203,14 +232,17 @@ for EXCLUDE in "${EXCLUDES[@]}"; do
 done
 
 # Backup
-borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
+borg create --verbose --filter AME --list --stats --show-rc --compression lz4 \
+    --exclude-caches $EXCLUDE_OPTS \
+    ::'{hostname}-{now}' $BACKUP_LOCATIONS --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
 
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
 
 # Prune
-borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d --keep-daily 28 --keep-weekly 8 --keep-monthly 48 2>&1 | tee -a $OUTPUT_FILE
+borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d \
+    --keep-daily 28 --keep-weekly 8 --keep-monthly 48 --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
 
 prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
