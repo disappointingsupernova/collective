@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.8"
+SCRIPT_VERSION="1.0.9"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 
@@ -13,6 +13,10 @@ EXCLUDE_LIST=""
 ON_SUCCESS=""
 ON_WARNING=""
 ON_FAILURE=""
+DEFAULT_KEEP_WITHIN="14d"
+DEFAULT_KEEP_DAILY="28"
+DEFAULT_KEEP_WEEKLY="8"
+DEFAULT_KEEP_MONTHLY="48"
 
 GITHUB_ACCOUNT="disappointingsupernova"
 REPO_NAME="collective"
@@ -124,7 +128,15 @@ Options:
   -u, --update     Update the script to the latest version from GitHub
   -u, --update=force   Force update the script to the latest version from GitHub even if the current version is the latest
   -v, --version    Show the script version and exit
-  -h, --help       Show this help message and exit"
+  -h, --help       Show this help message and exit
+  --keep-within    Specify the time interval to keep backups (default: 14d)
+                   Example: --keep-within 7d
+  --keep-daily     Specify the number of daily backups to keep (default: 28)
+                   Example: --keep-daily 14
+  --keep-weekly    Specify the number of weekly backups to keep (default: 8)
+                   Example: --keep-weekly 4
+  --keep-monthly   Specify the number of monthly backups to keep (default: 48)
+                   Example: --keep-monthly 12"
 }
 
 show_version() {
@@ -207,6 +219,10 @@ USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
 remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mount/\$USERNAME/borg"
 BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
+KEEP_WITHIN="$DEFAULT_KEEP_WITHIN"
+KEEP_DAILY="$DEFAULT_KEEP_DAILY"
+KEEP_WEEKLY="$DEFAULT_KEEP_WEEKLY"
+KEEP_MONTHLY="$DEFAULT_KEEP_MONTHLY"
 
 # Setting this, so the repo does not need to be given on the commandline:
 export BORG_REPO=ssh://\$remote_storage_location
@@ -308,6 +324,22 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           REMOTE_PATH="$2"
           shift
           ;;
+        keep-within)
+          KEEP_WITHIN="$2"
+          shift
+          ;;
+        keep-daily)
+          KEEP_DAILY="$2"
+          shift
+          ;;
+        keep-weekly)
+          KEEP_WEEKLY="$2"
+          shift
+          ;;
+        keep-monthly)
+          KEEP_MONTHLY="$2"
+          shift
+          ;;
         *)
           echo "Invalid option: --${OPTARG}" 1>&2
           show_help
@@ -347,6 +379,12 @@ if [ -z "$BACKUP_LOCATIONS" ]; then
     fi
 fi
 
+# Use prune options from config file if not set by command-line argument
+KEEP_WITHIN=${KEEP_WITHIN:-$DEFAULT_KEEP_WITHIN}
+KEEP_DAILY=${KEEP_DAILY:-$DEFAULT_KEEP_DAILY}
+KEEP_WEEKLY=${KEEP_WEEKLY:-$DEFAULT_KEEP_WEEKLY}
+KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
+
 initialize_borg_repo
 
 log "Starting Backup with locations: $BACKUP_LOCATIONS"
@@ -374,8 +412,11 @@ backup_exit=${PIPESTATUS[0]}
 log "Pruning Repository"
 
 # Prune
-borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d \
-    --keep-daily 28 --keep-weekly 8 --keep-monthly 48 $REMOTE_OPTS 2>&1 | tee -a $OUTPUT_FILE
+borg prune --list --glob-archives '{hostname}-*' --show-rc \
+    --keep-within $KEEP_WITHIN \
+    --keep-daily $KEEP_DAILY \
+    --keep-weekly $KEEP_WEEKLY \
+    --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS 2>&1 | tee -a $OUTPUT_FILE
 
 prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
