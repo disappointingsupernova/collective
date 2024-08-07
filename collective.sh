@@ -8,7 +8,7 @@ EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
 REMOTE_PATH=""
-BACKUP_LOCATIONS="/etc /home /root /var"
+DEFAULT_BACKUP_LOCATIONS="/etc /home /root /var"
 EXCLUDE_LIST=""
 ON_SUCCESS=""
 ON_WARNING=""
@@ -31,7 +31,7 @@ function find_command() {
     local path
     path=$(which "$cmd")
     if [ -z "$path" ]; then
-        log_message "Error: $cmd not found. Please ensure it is installed and available in your PATH."
+        log "Error: $cmd not found. Please ensure it is installed and available in your PATH."
         exit 1
     fi
     echo "$path"
@@ -62,7 +62,7 @@ log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
 }
 
-function send_email() {
+send_email() {
     gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
     {
         echo "From: borg@$(hostname)"
@@ -103,7 +103,7 @@ show_help() {
     echo "Usage: $0 [options]
 Options:
   -c FILE          Specify the Borg configuration file (default: /root/.borg.settings)
-  -l DIRS          Specify the directories to back up as a space-separated list (default: /etc /home /root /mount /var)
+  -l DIRS          Specify the directories to back up as a space-separated list (default: /etc /home /root /var)
   -e EXCLUDES      Specify paths to exclude as a comma-separated list (e.g., 'home/*/.cache/*,var/tmp/*')
   -s CMD           Command to run on successful completion
   -w CMD           Command to run on completion with warnings
@@ -193,6 +193,7 @@ email_address="$EMAIL_RECIPIENT"
 USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
 remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mount/\$USERNAME/borg"
+BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
 
 # Setting this, so the repo does not need to be given on the commandline:
 export BORG_REPO=ssh://\$remote_storage_location
@@ -326,6 +327,11 @@ if [ ! -f "$BORG_CONFIG_FILE" ]; then
 fi
 
 . $BORG_CONFIG_FILE
+
+# Use BACKUP_LOCATIONS from config file if it exists
+if [ -z "$BACKUP_LOCATIONS" ]; then
+    BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
+fi
 
 initialize_borg_repo
 
