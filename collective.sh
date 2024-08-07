@@ -203,17 +203,14 @@ for EXCLUDE in "${EXCLUDES[@]}"; do
 done
 
 # Backup
-borg create --verbose --filter AME --list --stats --show-rc --compression lz4 \
-    --exclude-caches $EXCLUDE_OPTS \
-    ::'{hostname}-{now}' $BACKUP_LOCATIONS --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
+borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
 
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
 
 # Prune
-borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d \
-    --keep-daily 28 --keep-weekly 8 --keep-monthly 48 --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
+borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d --keep-daily 28 --keep-weekly 8 --keep-monthly 48 2>&1 | tee -a $OUTPUT_FILE
 
 prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
