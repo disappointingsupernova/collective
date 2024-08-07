@@ -23,6 +23,18 @@ GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 TEMP_DIR=$(mktemp -d)
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
 
+# Function to find the full path of a command
+function find_command() {
+    local cmd="$1"
+    local path
+    path=$(which "$cmd")
+    if [ -z "$path" ]; then
+        log_message "Error: $cmd not found. Please ensure it is installed and available in your PATH."
+        exit 1
+    fi
+    echo "$path"
+}
+
 SENDMAIL_CMD=$(find_command sendmail)
 
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
@@ -43,19 +55,6 @@ check_installation() {
         fi
     fi
 }
-
-# Function to find the full path of a command
-function find_command() {
-    local cmd="$1"
-    local path
-    path=$(which "$cmd")
-    if [ -z "$path" ]; then
-        log_message "Error: $cmd not found. Please ensure it is installed and available in your PATH."
-        exit 1
-    fi
-    echo "$path"
-}
-
 
 log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
