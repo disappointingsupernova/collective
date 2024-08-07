@@ -5,7 +5,7 @@ SCRIPT_VERSION="1.0.0"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
-REMOTE_PATH="borg1"
+REMOTE_PATH=""
 BACKUP_LOCATIONS="/etc /home /root /mount /var"
 EXCLUDE_LIST=""
 ON_SUCCESS=""
@@ -77,14 +77,15 @@ handle_exit() {
 show_help() {
     echo "Usage: $0 [options]
 Options:
-  -c FILE      Specify the Borg configuration file (default: /root/.borg.settings)
-  -l DIRS      Specify the directories to back up as a space-separated list (default: /etc /home /root /mount /var)
-  -e EXCLUDES  Specify paths to exclude as a comma-separated list (e.g., 'home/*/.cache/*,var/tmp/*')
-  -s CMD       Command to run on successful completion
-  -w CMD       Command to run on completion with warnings
-  -f CMD       Command to run on failure
-  -u, --update Update the script to the latest version from GitHub
-  -h, --help   Show this help message and exit"
+  -c FILE          Specify the Borg configuration file (default: /root/.borg.settings)
+  -l DIRS          Specify the directories to back up as a space-separated list (default: /etc /home /root /mount /var)
+  -e EXCLUDES      Specify paths to exclude as a comma-separated list (e.g., 'home/*/.cache/*,var/tmp/*')
+  -s CMD           Command to run on successful completion
+  -w CMD           Command to run on completion with warnings
+  -f CMD           Command to run on failure
+  -r, --remote     Specify the remote path for Borg operations
+  -u, --update     Update the script to the latest version from GitHub
+  -h, --help       Show this help message and exit"
 }
 
 install_borg() {
@@ -202,7 +203,7 @@ trap 'log "Backup interrupted"; exit 2' INT TERM
 check_installation
 
 # Parse command-line arguments
-while getopts ":c:l:e:s:w:f:uh-:" opt; do
+while getopts ":c:l:e:s:w:f:r:uh-:" opt; do
   case ${opt} in
     c )
       BORG_CONFIG_FILE=$OPTARG
@@ -222,6 +223,9 @@ while getopts ":c:l:e:s:w:f:uh-:" opt; do
     f )
       ON_FAILURE=$OPTARG
       ;;
+    r )
+      REMOTE_PATH=$OPTARG
+      ;;
     u )
       update_script
       ;;
@@ -237,6 +241,10 @@ while getopts ":c:l:e:s:w:f:uh-:" opt; do
           ;;
         update)
           update_script
+          ;;
+        remote)
+          REMOTE_PATH="$2"
+          shift
           ;;
         *)
           echo "Invalid option: --${OPTARG}" 1>&2
@@ -279,10 +287,16 @@ for EXCLUDE in "${EXCLUDES[@]}"; do
     EXCLUDE_OPTS+="--exclude $EXCLUDE "
 done
 
+# Prepare remote path option
+REMOTE_OPTS=""
+if [ -n "$REMOTE_PATH" ]; then
+    REMOTE_OPTS="--remote-path=$REMOTE_PATH"
+fi
+
 # Backup
 borg create --verbose --filter AME --list --stats --show-rc --compression lz4 \
-    --exclude-caches $EXCLUDE_OPTS \
-    ::'{hostname}-{now}' $BACKUP_LOCATIONS --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
+    --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS \
+    ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
 
 backup_exit=${PIPESTATUS[0]}
 
@@ -290,14 +304,14 @@ log "Pruning Repository"
 
 # Prune
 borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within 14d \
-    --keep-daily 28 --keep-weekly 8 --keep-monthly 48 --remote-path=$REMOTE_PATH 2>&1 | tee -a $OUTPUT_FILE
+    --keep-daily 28 --keep-weekly 8 --keep-monthly 48 $REMOTE_OPTS 2>&1 | tee -a $OUTPUT_FILE
 
 prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
 
 # Determine global exit code
-global_exit=$(( backup_exit > prune_exit ? backup exit : prune exit ))
-global_exit=$(( compact exit > global exit ? compact exit : global exit ))
+global_exit=$(( backup_exit > prune_exit ? backup_exit : prune_exit ))
+global_exit=$(( compact_exit > global_exit ? compact_exit : global_exit ))
 
 handle_exit $global_exit
 
