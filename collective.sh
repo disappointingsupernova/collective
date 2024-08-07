@@ -44,6 +44,19 @@ check_installation() {
     fi
 }
 
+# Function to find the full path of a command
+function find_command() {
+    local cmd="$1"
+    local path
+    path=$(which "$cmd")
+    if [ -z "$path" ]; then
+        log_message "Error: $cmd not found. Please ensure it is installed and available in your PATH."
+        exit 1
+    fi
+    echo "$path"
+}
+
+
 log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
 }
