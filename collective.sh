@@ -5,7 +5,6 @@ SCRIPT_VERSION="1.0.0"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
-OUTPUT_FILE="/root/pgp_message.txt"
 REMOTE_PATH="borg1"
 BACKUP_LOCATIONS="/etc /home /root /mount /var"
 EXCLUDE_LIST=""
@@ -20,6 +19,9 @@ GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$S
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 
+TEMP_DIR=$(mktemp -d)
+OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
+
 log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
 }
@@ -27,10 +29,10 @@ log() {
 send_email() {
     SUBJECT=$1
     gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
-    echo "Subject: $SUBJECT" > /tmp/email.txt
-    cat ${OUTPUT_FILE}.asc >> /tmp/email.txt
-    sendmail -f "borg@$(hostname)" $EMAIL_RECIPIENT < /tmp/email.txt
-    rm ${OUTPUT_FILE}.asc /tmp/email.txt
+    echo "Subject: $SUBJECT" > "$TEMP_DIR/email.txt"
+    cat ${OUTPUT_FILE}.asc >> "$TEMP_DIR/email.txt"
+    sendmail -f "borg@$(hostname)" $EMAIL_RECIPIENT < "$TEMP_DIR/email.txt"
+    rm ${OUTPUT_FILE}.asc "$TEMP_DIR/email.txt"
 }
 
 handle_exit() {
@@ -49,6 +51,7 @@ handle_exit() {
         SUBJECT="borg FAILURE: $(hostname) @ $(date) - $remote_storage_location"
     fi
     send_email "$SUBJECT"
+    rm -rf $TEMP_DIR
 }
 
 show_help() {
@@ -271,11 +274,11 @@ compact_exit=0  # Assuming compact command or similar would go here
 
 # Determine global exit code
 global_exit=$(( backup_exit > prune_exit ? backup_exit : prune_exit ))
-global_exit=$(( compact_exit > global_exit ? compact_exit : global_exit ))
+global_exit=$(( compact_exit > global_exit ? compact exit : global exit ))
 
 handle_exit $global_exit
 
 # Cleanup
-rm $OUTPUT_FILE
+rm -rf $TEMP_DIR
 
 exit $global_exit
