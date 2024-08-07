@@ -89,15 +89,15 @@ handle_exit() {
     if [ $EXIT_CODE -eq 0 ]; then
         log "Backup and Prune finished successfully"
         [ -n "$ON_SUCCESS" ] && eval "$ON_SUCCESS"
-        SUBJECT="borg SUCCESS: $(hostname) - $remote_storage_location"
+        SUBJECT="borg SUCCESS: $(hostname) - $DISPLAY_NAME"
     elif [ $EXIT_CODE -eq 1 ]; then
         log "Backup and Prune finished with warnings"
         [ -n "$ON_WARNING" ] && eval "$ON_WARNING"
-        SUBJECT="borg WARNING: $(hostname) - $remote_storage_location"
+        SUBJECT="borg WARNING: $(hostname) - $remote_storage_location - $DISPLAY_NAME"
     else
         log "Backup and Prune finished with errors"
         [ -n "$ON_FAILURE" ] && eval "$ON_FAILURE"
-        SUBJECT="borg FAILURE: $(hostname) @ $(date) - $remote_storage_location"
+        SUBJECT="borg FAILURE: $(hostname) @ $(date) - $remote_storage_location - $DISPLAY_NAME"
     fi
     send_email "$SUBJECT"
     rm -rf $TEMP_DIR
