@@ -236,9 +236,6 @@ force_update_script() {
 
 trap 'log "Backup interrupted"; exit 2' INT TERM
 
-# Check installation
-check_installation
-
 # Parse command-line arguments
 while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
   case ${opt} in
@@ -328,9 +325,13 @@ fi
 
 . $BORG_CONFIG_FILE
 
-# Use BACKUP_LOCATIONS from config file if it exists
+# Use BACKUP_LOCATIONS from config file if not set by command-line argument
 if [ -z "$BACKUP_LOCATIONS" ]; then
-    BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
+    if [ -n "$BACKUP_LOCATIONS" ]; then
+        BACKUP_LOCATIONS="$BACKUP_LOCATIONS"
+    else
+        BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
+    fi
 fi
 
 initialize_borg_repo
