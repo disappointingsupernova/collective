@@ -27,8 +27,10 @@ log() {
 send_email() {
     SUBJECT=$1
     gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
-    cat ${OUTPUT_FILE}.asc | mail -s "$SUBJECT" -r borg@$(hostname) $EMAIL_RECIPIENT
-    rm ${OUTPUT_FILE}.asc
+    echo "Subject: $SUBJECT" > /tmp/email.txt
+    cat ${OUTPUT_FILE}.asc >> /tmp/email.txt
+    sendmail -f "borg@$(hostname)" $EMAIL_RECIPIENT < /tmp/email.txt
+    rm ${OUTPUT_FILE}.asc /tmp/email.txt
 }
 
 handle_exit() {
@@ -77,9 +79,28 @@ install_borg() {
     fi
 }
 
+install_sendmail() {
+    if [ -f /etc/debian_version ]; then
+        echo "Installing sendmail on Debian-based system..."
+        apt-get install -y sendmail
+    elif [ -f /etc/redhat-release ]; then
+        echo "Installing sendmail on RedHat-based system..."
+        yum install -y sendmail
+    else
+        echo "Unsupported OS. Please install sendmail manually."
+        exit 1
+    fi
+}
+
 check_borg_installed() {
     if ! command -v borg > /dev/null; then
         install_borg
+    fi
+}
+
+check_sendmail_installed() {
+    if ! command -v sendmail > /dev/null; then
+        install_sendmail
     fi
 }
 
@@ -212,6 +233,7 @@ while getopts ":c:l:e:s:w:f:uh-:" opt; do
 done
 
 check_borg_installed
+check_sendmail_installed
 check_gpg_key_installed
 
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
