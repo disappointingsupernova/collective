@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.7"
+SCRIPT_VERSION="1.0.8"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 
@@ -101,15 +101,28 @@ handle_exit() {
 
 show_help() {
     echo "Usage: $0 [options]
+    
+Collective is a backup script that uses BorgBackup to create and manage backups.
+It includes features such as email notifications, GPG encryption, and remote path configuration.
+You can also update the script to the latest version from GitHub.
+
 Options:
   -c FILE          Specify the Borg configuration file (default: /root/.borg.settings)
+                   Example: -c /path/to/config.file
   -l DIRS          Specify the directories to back up as a space-separated list (default: /etc /home /root /var)
-  -e EXCLUDES      Specify paths to exclude as a comma-separated list (e.g., 'home/*/.cache/*,var/tmp/*')
+                   Example: -l '/etc /var/www /opt'
+  -e EXCLUDES      Specify paths to exclude as a comma-separated list
+                   Example: -e 'home/*/.cache/*,var/tmp/*'
   -s CMD           Command to run on successful completion
+                   Example: -s 'echo Success'
   -w CMD           Command to run on completion with warnings
+                   Example: -w 'echo Warning'
   -f CMD           Command to run on failure
+                   Example: -f 'echo Failure'
   -r, --remote     Specify the remote path for Borg operations
+                   Example: -r /remote/path
   -u, --update     Update the script to the latest version from GitHub
+  -u, --update=force   Force update the script to the latest version from GitHub even if the current version is the latest
   -v, --version    Show the script version and exit
   -h, --help       Show this help message and exit"
 }
