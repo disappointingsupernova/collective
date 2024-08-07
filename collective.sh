@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.6"
+SCRIPT_VERSION="1.0.7"
+
+EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -66,7 +68,7 @@ function send_email() {
     {
         echo "From: borg@$(hostname)"
         echo "To: $EMAIL_RECIPIENT"
-        echo "Subject:$SUBJECT"
+        echo "Subject: $SUBJECT"
         echo "MIME-Version: 1.0"
         echo "Content-Type: multipart/mixed; boundary=\"COLLECTIVE-BOUNDARY\""
         echo
@@ -185,12 +187,10 @@ prompt_for_config() {
         echo "Generated secure BORG_PASSPHRASE: $BORG_PASSPHRASE"
     fi
 
-    email_address="$(hostname)@sarik.tech"
-
 cat <<EOF > $BORG_CONFIG_FILE
 remote_ssh_port="$remote_ssh_port"
 remote_ssh_key="$remote_ssh_key"
-email_address="$email_address"
+email_address="$EMAIL_RECIPIENT"
 USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
 remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mount/\$USERNAME/borg"
