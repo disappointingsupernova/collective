@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Script version
-SCRIPT_VERSION="1.0.3"
+SCRIPT_VERSION="1.0.4"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -26,19 +26,11 @@ OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
     if [ ! -f /usr/bin/$REPO_NAME ]; then
-        read -p "Do you want to install $DISPLAY_NAME to /usr/bin/$REPO_NAME? [Y/n]: " response
-        response=${response:-yes}
-        if [ "$response" = "y" ] || [ "$response" = "Y" ] || [ "$response" = "yes" ] || [ "$response" = "Yes" ]; then
-            echo "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
-            cp "$0" /usr/bin/$REPO_NAME
-            chmod +x /usr/bin/$REPO_NAME
-            echo "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
-            echo "Removing script from the current location."
-            rm -f "$0"
-            exit 0
-        else
-            echo "Skipping installation to /usr/bin/$REPO_NAME."
-        fi
+        echo "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
+        cp "$0" /usr/bin/$REPO_NAME
+        chmod +x /usr/bin/$REPO_NAME
+        echo "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
+        exit 0
     fi
 }
 
@@ -205,7 +197,9 @@ update_script() {
 trap 'log "Backup interrupted"; exit 2' INT TERM
 
 # Check installation
-check_installation
+if [ "$(basename -- "$0")" = "collective.sh" ]; then
+    check_installation
+fi
 
 # Parse command-line arguments
 while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
