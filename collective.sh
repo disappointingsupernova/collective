@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Script version
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -85,7 +85,12 @@ Options:
   -f CMD           Command to run on failure
   -r, --remote     Specify the remote path for Borg operations
   -u, --update     Update the script to the latest version from GitHub
+  -v, --version    Show the script version and exit
   -h, --help       Show this help message and exit"
+}
+
+show_version() {
+    echo "$DISPLAY_NAME version $SCRIPT_VERSION"
 }
 
 install_borg() {
@@ -203,7 +208,7 @@ trap 'log "Backup interrupted"; exit 2' INT TERM
 check_installation
 
 # Parse command-line arguments
-while getopts ":c:l:e:s:w:f:r:uh-:" opt; do
+while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
   case ${opt} in
     c )
       BORG_CONFIG_FILE=$OPTARG
@@ -229,6 +234,10 @@ while getopts ":c:l:e:s:w:f:r:uh-:" opt; do
     u )
       update_script
       ;;
+    v )
+      show_version
+      exit 0
+      ;;
     h )
       show_help
       exit 0
@@ -241,6 +250,10 @@ while getopts ":c:l:e:s:w:f:r:uh-:" opt; do
           ;;
         update)
           update_script
+          ;;
+        version)
+          show_version
+          exit 0
           ;;
         remote)
           REMOTE_PATH="$2"
