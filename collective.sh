@@ -3,7 +3,6 @@
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
 OUTPUT_FILE="/root/pgp_message.txt"
-EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 REMOTE_PATH="borg1"
 BACKUP_LOCATIONS="/etc /home /root /mount /var"
 EXCLUDE_LIST=""
@@ -104,7 +103,6 @@ prompt_for_config() {
     fi
 
     email_address="$(hostname)@sarik.tech"
-    remote_storage_location="$USERNAME@borg.sarik.tech:$remote_ssh_port/mount/$USERNAME/borg"
 
 cat <<EOF > $BORG_CONFIG_FILE
 remote_ssh_port="$remote_ssh_port"
@@ -112,7 +110,7 @@ remote_ssh_key="$remote_ssh_key"
 email_address="$email_address"
 USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
-remote_storage_location="\$USERNAME@borg.sarik.tech:\$remote_ssh_port/mount/\$USERNAME/borg"
+remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mount/\$USERNAME/borg"
 
 # Setting this, so the repo does not need to be given on the commandline:
 export BORG_REPO=ssh://\$remote_storage_location
