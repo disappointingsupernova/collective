@@ -8,7 +8,7 @@ EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
 REMOTE_PATH=""
-BACKUP_LOCATIONS="/etc /home /root /mount /var"
+BACKUP_LOCATIONS="/etc /home /root /var"
 EXCLUDE_LIST=""
 ON_SUCCESS=""
 ON_WARNING=""
@@ -63,7 +63,6 @@ log() {
 }
 
 function send_email() {
-    temp_err_file=$(mktemp)
     gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
     {
         echo "From: borg@$(hostname)"
