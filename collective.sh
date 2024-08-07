@@ -15,12 +15,32 @@ ON_FAILURE=""
 GITHUB_ACCOUNT="disappointingsupernova"
 REPO_NAME="collective"
 SCRIPT_NAME="collective.sh"
+DISPLAY_NAME="Collective"
 GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 
 TEMP_DIR=$(mktemp -d)
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
+
+# Function to check if the script is installed in /usr/bin/$REPO_NAME
+check_installation() {
+    if [ ! -f /usr/bin/$REPO_NAME ]; then
+        read -p "Do you want to install $DISPLAY_NAME to /usr/bin/$REPO_NAME? [Y/n]: " response
+        response=${response:-yes}
+        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            echo "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
+            cp "$0" /usr/bin/$REPO_NAME
+            chmod +x /usr/bin/$REPO_NAME
+            echo "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
+            echo "Removing script from the current location."
+            rm -f "$0"
+            exit 0
+        else
+            echo "Skipping installation to /usr/bin/$REPO_NAME."
+        fi
+    fi
+}
 
 log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
@@ -178,6 +198,9 @@ update_script() {
 
 trap 'log "Backup interrupted"; exit 2' INT TERM
 
+# Check installation
+check_installation
+
 # Parse command-line arguments
 while getopts ":c:l:e:s:w:f:uh-:" opt; do
   case ${opt} in
@@ -273,8 +296,8 @@ prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
 
 # Determine global exit code
-global_exit=$(( backup_exit > prune_exit ? backup_exit : prune_exit ))
-global_exit=$(( compact_exit > global_exit ? compact exit : global exit ))
+global_exit=$(( backup_exit > prune_exit ? backup exit : prune exit ))
+global_exit=$(( compact exit > global exit ? compact exit : global exit ))
 
 handle_exit $global_exit
 
