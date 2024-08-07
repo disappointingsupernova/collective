@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.5"
+SCRIPT_VERSION="1.0.6"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -184,7 +184,7 @@ initialize_borg_repo() {
     if ! borg info > /dev/null 2>&1; then
         echo "Borg repository not initialized. Initializing now."
         borg init -e repokey
-        borg key export :: $TEMP_DIR/repo-key.bak
+        borg key export :: > $TEMP_DIR/repo-key.bak
         cat $TEMP_DIR/repo-key.bak
     fi
 }
@@ -201,6 +201,13 @@ update_script() {
         echo "You are already using the latest version ($SCRIPT_VERSION)."
         exit 0
     fi
+}
+
+force_update_script() {
+    echo "Forcing update from $GITHUB_URL..."
+    curl -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
+    echo "Script reinstalled successfully."
+    exit 0
 }
 
 trap 'log "Backup interrupted"; exit 2' INT TERM
@@ -233,7 +240,11 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
       REMOTE_PATH=$OPTARG
       ;;
     u )
-      update_script
+      if [ "$OPTARG" = "--force" ]; then
+          force_update_script
+      else
+          update_script
+      fi
       ;;
     v )
       show_version
@@ -251,6 +262,9 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           ;;
         update)
           update_script
+          ;;
+        update=force)
+          force_update_script
           ;;
         version)
           show_version
