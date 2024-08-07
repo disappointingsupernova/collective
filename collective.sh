@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Script version
-SCRIPT_VERSION="1.0.2"
+SCRIPT_VERSION="1.0.3"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -28,7 +28,7 @@ check_installation() {
     if [ ! -f /usr/bin/$REPO_NAME ]; then
         read -p "Do you want to install $DISPLAY_NAME to /usr/bin/$REPO_NAME? [Y/n]: " response
         response=${response:-yes}
-        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        if [ "$response" = "y" ] || [ "$response" = "Y" ] || [ "$response" = "yes" ] || [ "$response" = "Yes" ]; then
             echo "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
             cp "$0" /usr/bin/$REPO_NAME
             chmod +x /usr/bin/$REPO_NAME
