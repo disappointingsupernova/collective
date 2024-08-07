@@ -106,19 +106,19 @@ prompt_for_config() {
     email_address="$(hostname)@sarik.tech"
     remote_storage_location="$USERNAME@borg.sarik.tech:$remote_ssh_port/mount/$USERNAME/borg"
 
-    cat <<EOL > $BORG_CONFIG_FILE
+cat <<EOF > $BORG_CONFIG_FILE
 remote_ssh_port="$remote_ssh_port"
 remote_ssh_key="$remote_ssh_key"
 email_address="$email_address"
 USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
-remote_storage_location="$remote_storage_location"
+remote_storage_location="\$USERNAME@borg.sarik.tech:\$remote_ssh_port/mount/\$USERNAME/borg"
 
 # Setting this, so the repo does not need to be given on the commandline:
-export BORG_REPO=ssh://$remote_storage_location
-export BORG_RSH="ssh -4 -i $remote_ssh_key"
+export BORG_REPO=ssh://\$remote_storage_location
+export BORG_RSH="ssh -4 -i \$remote_ssh_key"
 export BORG_PASSPHRASE='$BORG_PASSPHRASE'
-EOL
+EOF
 
     echo "Borg configuration file created at $BORG_CONFIG_FILE"
 }
