@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Script version
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
