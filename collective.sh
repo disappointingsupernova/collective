@@ -184,7 +184,8 @@ initialize_borg_repo() {
     if ! borg info > /dev/null 2>&1; then
         echo "Borg repository not initialized. Initializing now."
         borg init -e repokey
-        borg key export :: | tee >(cat >&2)
+        borg key export :: $TEMP_DIR/repo-key.bak
+        cat $TEMP_DIR/repo-key.bak
     fi
 }
 
