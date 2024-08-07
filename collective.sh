@@ -23,6 +23,8 @@ GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 TEMP_DIR=$(mktemp -d)
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
 
+SENDMAIL_CMD=$(find_command sendmail)
+
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
     if [ ! -f /usr/bin/$REPO_NAME ]; then
@@ -46,13 +48,23 @@ log() {
     echo "$(date) $*" | tee -a $OUTPUT_FILE
 }
 
-send_email() {
-    SUBJECT=$1
+function send_email() {
+    temp_err_file=$(mktemp)
     gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
-    echo "Subject: $SUBJECT" > "$TEMP_DIR/email.txt"
-    cat ${OUTPUT_FILE}.asc >> "$TEMP_DIR/email.txt"
-    sendmail -f "borg@$(hostname)" $EMAIL_RECIPIENT < "$TEMP_DIR/email.txt"
-    rm ${OUTPUT_FILE}.asc "$TEMP_DIR/email.txt"
+    {
+        echo "From: borg@$(hostname)"
+        echo "To: $EMAIL_RECIPIENT"
+        echo "Subject:$SUBJECT"
+        echo "MIME-Version: 1.0"
+        echo "Content-Type: multipart/mixed; boundary=\"COLLECTIVE-BOUNDARY\""
+        echo
+        echo "--COLLECTIVE-BOUNDARY"
+        echo "Content-Type: text/plain"
+        echo
+        cat "$OUTPUT_FILE.asc"
+        echo
+        echo "--COLLECTIVE-BOUNDARY--"
+    } | $SENDMAIL_CMD -t 
 }
 
 handle_exit() {
