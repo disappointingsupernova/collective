@@ -416,15 +416,15 @@ fi
 
 log "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "Excluding: $EXCLUDE_OPTS"
+log "borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1"
 
 # Backup
-borg create --verbose --filter AME --list --stats --show-rc --compression lz4 \
-    --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS \
-    ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
+borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
 
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
+log "borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
 borg prune --list --glob-archives '{hostname}-*' --show-rc \
