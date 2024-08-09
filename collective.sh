@@ -116,7 +116,7 @@ Options:
   -l DIRS          Specify the directories to back up as a space-separated list (default: /etc /home /root /var)
                    Example: -l '/etc /var/www /opt'
   -e EXCLUDES      Specify paths to exclude as a comma-separated list
-                   Example: -e 'home/*/.cache/*,var/tmp/*'
+                   Example: -e '/mount/storage/ncc1701d,/mount/ncc1701d'
   -s CMD           Command to run on successful completion
                    Example: -s 'echo Success'
   -w CMD           Command to run on completion with warnings
