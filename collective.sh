@@ -416,7 +416,7 @@ fi
 
 log "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "Excluding: $EXCLUDE_OPTS"
-log "borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1"
+log "borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS"
 
 # Backup
 borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
