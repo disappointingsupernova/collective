@@ -400,7 +400,6 @@ KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
 
 initialize_borg_repo
 
-log "Starting Backup with locations: $BACKUP_LOCATIONS"
 
 # Prepare exclude options
 IFS=',' read -ra EXCLUDES <<< "$EXCLUDE_LIST"
@@ -414,6 +413,9 @@ REMOTE_OPTS=""
 if [ -n "$REMOTE_PATH" ]; then
     REMOTE_OPTS="--remote-path=$REMOTE_PATH"
 fi
+
+log "Starting Backup with locations: $BACKUP_LOCATIONS"
+log "Excluding: $EXCLUDE_OPTS"
 
 # Backup
 borg create --verbose --filter AME --list --stats --show-rc --compression lz4 \
