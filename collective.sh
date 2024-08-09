@@ -405,7 +405,7 @@ initialize_borg_repo
 IFS=',' read -ra EXCLUDES <<< "$EXCLUDE_LIST"
 EXCLUDE_OPTS=""
 for EXCLUDE in "${EXCLUDES[@]}"; do
-    EXCLUDE_OPTS+="--exclude '${EXCLUDE}' "
+    EXCLUDE_OPTS+="--exclude $EXCLUDE "
 done
 
 # Prepare remote path option
