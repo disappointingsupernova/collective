@@ -264,7 +264,7 @@ force_update_script() {
     exit 0
 }
 
-trap 'log "Backup interrupted"; handle_exit 2' INT TERM
+trap 'log "Backup interrupted"; handle_exit 2; exit 2' INT TERM
 
 # Check installation
 check_installation
