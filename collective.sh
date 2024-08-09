@@ -9,7 +9,7 @@ EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 BORG_CONFIG_FILE="/root/.borg.settings"
 REMOTE_PATH=""
 DEFAULT_BACKUP_LOCATIONS="/etc /home /root /var"
-EXCLUDE_LIST=""
+DEFAULT_EXCLUDE_LIST=""
 ON_SUCCESS=""
 ON_WARNING=""
 ON_FAILURE=""
@@ -219,6 +219,7 @@ USERNAME="$USERNAME"
 remote_server_address="$remote_server_address"
 remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mount/\$USERNAME/borg"
 BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
+EXCLUDE_LIST="$DEFAULT_EXCLUDE_LIST"
 KEEP_WITHIN="$DEFAULT_KEEP_WITHIN"
 KEEP_DAILY="$DEFAULT_KEEP_DAILY"
 KEEP_WEEKLY="$DEFAULT_KEEP_WEEKLY"
@@ -380,6 +381,11 @@ if [ -z "$BACKUP_LOCATIONS" ]; then
     else
         BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
     fi
+fi
+
+# Use EXCLUDE_LIST from config file if not set by command-line argument
+if [ -z "$EXCLUDE_LIST" ]; then
+    EXCLUDE_LIST="$DEFAULT_EXCLUDE_LIST"
 fi
 
 # Use prune options from config file if not set by command-line argument
