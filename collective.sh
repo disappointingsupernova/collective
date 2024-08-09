@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.9"
+SCRIPT_VERSION="1.0.10"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 
@@ -264,6 +264,9 @@ force_update_script() {
 }
 
 trap 'log "Backup interrupted"; exit 2' INT TERM
+
+# Check installation
+check_installation
 
 # Parse command-line arguments
 while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
