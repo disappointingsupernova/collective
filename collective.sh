@@ -9,7 +9,7 @@ EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 BORG_CONFIG_FILE="/root/.borg.settings"
 REMOTE_PATH=""
 DEFAULT_BACKUP_LOCATIONS="/etc /home /root /var"
-DEFAULT_EXCLUDE_LIST=""
+DEFAULT_EXCLUDE_LIST="home/*/.cache/*,var/tmp/* "
 ON_SUCCESS=""
 ON_WARNING=""
 ON_FAILURE=""
@@ -385,7 +385,11 @@ fi
 
 # Use EXCLUDE_LIST from config file if not set by command-line argument
 if [ -z "$EXCLUDE_LIST" ]; then
-    EXCLUDE_LIST="$DEFAULT_EXCLUDE_LIST"
+    if [ -n "$EXCLUDE_LIST" ]; then
+        EXCLUDE_LIST="$EXCLUDE_LIST"
+    else
+        EXCLUDE_LIST="$DEFAULT_EXCLUDE_LIST"
+    fi
 fi
 
 # Use prune options from config file if not set by command-line argument
