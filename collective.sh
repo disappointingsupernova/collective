@@ -200,8 +200,11 @@ Options:
   -u, --update=force   Force update the script to the latest version from GitHub even if the current version is the latest
   -v, --version    Show the script version and exit
   -h, --help       Show this help message and exit
+  --dry-run        Perform a trial run with no changes made; useful for testing
   --keep-within    Specify the time interval to keep backups (default: 14d)
                    Example: --keep-within 7d
+  --keep-hourly    Specify the number of hourly backups to keep (default: 24)
+                   Example: --keep-hourly 24
   --keep-daily     Specify the number of daily backups to keep (default: 28)
                    Example: --keep-daily 14
   --keep-weekly    Specify the number of weekly backups to keep (default: 8)
@@ -445,6 +448,9 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           KEEP_MONTHLY="$2"
           shift
           ;;
+        dry-run)
+          DRY_RUN=true
+          ;;
         *)
           log "Invalid option: --${OPTARG}"
           show_help
@@ -519,7 +525,7 @@ log "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "Excluding: $EXCLUDE_OPTS"
 
 # Backup
-if ! $BORG_CMD create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
+if ! $BORG_CMD create ${DRY_RUN:+--dry-run} --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
     log "Borg create command failed."
     handle_exit 1
     exit 1
@@ -528,10 +534,10 @@ fi
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
-log "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
+log "$BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
-if ! $BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc \
+if ! $BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc \
     --keep-within $KEEP_WITHIN \
     --keep-hourly $KEEP_HOURLY \
     --keep-daily $KEEP_DAILY \
