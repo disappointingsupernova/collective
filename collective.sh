@@ -52,7 +52,7 @@ cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
 log "Changed to /tmp directory."
 
 # Script version
-SCRIPT_VERSION="1.0.13"
+SCRIPT_VERSION="1.1"
 log "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
