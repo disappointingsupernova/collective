@@ -226,7 +226,7 @@ check_borg_installed() {
 
 check_sendmail_installed() {
     log "sendmail check function invoked"
-    if ! $SENDMAIL_CMD > /dev/null; then
+    if ! command -v sendmail > /dev/null; then
         log "sendmail not found. Installing..."
         install_sendmail
     else
