@@ -142,10 +142,19 @@ send_email() {
 
 handle_exit() {
     EXIT_CODE=$1
+    FAILED_FLAG_FILE="/root/.borglastrun.failed"
+
     if [ $EXIT_CODE -eq 0 ]; then
         log "Backup and Prune finished successfully"
         [ -n "$ON_SUCCESS" ] && eval "$ON_SUCCESS"
         SUBJECT="borg SUCCESS: $(hostname) - $DISPLAY_NAME"
+        
+        # Remove the failed flag file if it exists
+        if [ -f "$FAILED_FLAG_FILE" ]; then
+            rm -f "$FAILED_FLAG_FILE"
+            log "Removed $FAILED_FLAG_FILE after successful backup."
+        fi
+        
     elif [ $EXIT_CODE -eq 1 ]; then
         log "Backup and Prune finished with warnings"
         [ -n "$ON_WARNING" ] && eval "$ON_WARNING"
@@ -154,7 +163,12 @@ handle_exit() {
         log "Backup and Prune finished with errors"
         [ -n "$ON_FAILURE" ] && eval "$ON_FAILURE"
         SUBJECT="borg FAILURE: $(hostname) @ $(date) - $remote_storage_location - $DISPLAY_NAME"
+        
+        # Create the failed flag file
+        echo "1" > "$FAILED_FLAG_FILE"
+        log "Created $FAILED_FLAG_FILE due to backup failure."
     fi
+
     send_email "$SUBJECT"
     rm -rf $TEMP_DIR
     echo "Cleaned up temporary files." | $LOGGER_CMD -t "$DISPLAY_NAME"
