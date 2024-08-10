@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script version
-SCRIPT_VERSION="1.0.10"
+SCRIPT_VERSION="1.0.11"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
 
@@ -42,6 +42,10 @@ function find_command() {
 }
 
 SENDMAIL_CMD=$(find_command sendmail)
+GPG_CMD=$(find_command gpg)
+CURL_CMD=$(find_command curl)
+BORG_CMD=$(find_command borg)
+TEE_CMD=$(find_command tee)
 
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
@@ -63,11 +67,11 @@ check_installation() {
 }
 
 log() {
-    echo "$(date) $*" | tee -a $OUTPUT_FILE
+    echo "$(date) $*" | $TEE_CMD -a $OUTPUT_FILE
 }
 
 send_email() {
-    gpg --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
+    $GPG_CMD --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE
     {
         echo "From: borg@$(hostname)"
         echo "To: $EMAIL_RECIPIENT"
@@ -172,21 +176,21 @@ install_sendmail() {
 }
 
 check_borg_installed() {
-    if ! command -v borg > /dev/null; then
+    if ! $BORG_CMD > /dev/null; then
         install_borg
     fi
 }
 
 check_sendmail_installed() {
-    if ! command -v sendmail > /dev/null; then
+    if ! $SENDMAIL_CMD > /dev/null; then
         install_sendmail
     fi
 }
 
 check_gpg_key_installed() {
-    if ! gpg --list-keys $GPG_KEY_FINGERPRINT > /dev/null 2>&1; then
+    if ! $GPG_CMD --list-keys $GPG_KEY_FINGERPRINT > /dev/null 2>&1; then
         echo "GPG key with fingerprint $GPG_KEY_FINGERPRINT not found. Importing from keyserver.ubuntu.com..."
-        gpg --keyserver keyserver.ubuntu.com --recv-keys $GPG_KEY_FINGERPRINT
+        $GPG_CMD --keyserver keyserver.ubuntu.com --recv-keys $GPG_KEY_FINGERPRINT
     fi
 }
 
@@ -235,20 +239,20 @@ EOF
 }
 
 initialize_borg_repo() {
-    if ! borg info > /dev/null 2>&1; then
+    if ! $BORG_CMD info > /dev/null 2>&1; then
         echo "Borg repository not initialized. Initializing now."
-        borg init -e repokey
-        borg key export :: > $TEMP_DIR/repo-key.bak
+        $BORG_CMD init -e repokey
+        $BORG_CMD key export :: > $TEMP_DIR/repo-key.bak
         cat $TEMP_DIR/repo-key.bak
     fi
 }
 
 update_script() {
     echo "Checking for updates..."
-    LATEST_VERSION=$(curl -sSL $VERSION_URL)
+    LATEST_VERSION=$($CURL_CMD -sSL $VERSION_URL)
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
         echo "Updating script from $GITHUB_URL..."
-        curl -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
+        $CURL_CMD -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
         echo "Script updated to version $LATEST_VERSION."
         exit 0
     else
@@ -259,7 +263,7 @@ update_script() {
 
 force_update_script() {
     echo "Forcing update from $GITHUB_URL..."
-    curl -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
+    $CURL_CMD -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"
     echo "Script reinstalled successfully."
     exit 0
 }
@@ -416,22 +420,22 @@ fi
 
 log "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "Excluding: $EXCLUDE_OPTS"
-log "borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS"
+log "$BORG_CMD create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS"
 
 # Backup
-borg create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | tee -a $OUTPUT_FILE
+$BORG_CMD create --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | $TEE_CMD -a $OUTPUT_FILE
 
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
-log "borg prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
+log "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
-borg prune --list --glob-archives '{hostname}-*' --show-rc \
+$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc \
     --keep-within $KEEP_WITHIN \
     --keep-daily $KEEP_DAILY \
     --keep-weekly $KEEP_WEEKLY \
-    --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS 2>&1 | tee -a $OUTPUT_FILE
+    --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS 2>&1 | $TEE_CMD -a $OUTPUT_FILE
 
 prune_exit=${PIPESTATUS[0]}
 compact_exit=0  # Assuming compact command or similar would go here
