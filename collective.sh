@@ -2,12 +2,15 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Change to a safe directory
-cd /tmp
+cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
+log "Changed to /tmp directory."
 
 # Script version
 SCRIPT_VERSION="1.0.12"
+log "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
+log "Email recipient set to $EMAIL_RECIPIENT"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -22,6 +25,8 @@ DEFAULT_KEEP_DAILY="28"
 DEFAULT_KEEP_WEEKLY="8"
 DEFAULT_KEEP_MONTHLY="48"
 
+log "Default settings initialized."
+
 GITHUB_ACCOUNT="disappointingsupernova"
 REPO_NAME="collective"
 SCRIPT_NAME="collective.sh"
@@ -30,8 +35,12 @@ GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$S
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 
-TEMP_DIR=$(mktemp -d)
+log "GitHub and GPG settings initialized."
+
+TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; }
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
+
+log "Temporary directory created: $TEMP_DIR"
 
 # Function to find the full path of a command
 function find_command() {
@@ -44,6 +53,8 @@ function find_command() {
     fi
     echo "$path"
 }
+
+log "All necessary commands have been located."
 
 SENDMAIL_CMD=$(find_command sendmail)
 GPG_CMD=$(find_command gpg)
@@ -277,7 +288,7 @@ force_update_script() {
 
 trap 'log "Backup interrupted"; handle_exit 2; exit 2' INT TERM
 
-# Check installation
+log "Checking installation..."
 check_installation
 
 # Parse command-line arguments
@@ -383,6 +394,7 @@ if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
 
+log "Importing $BORG_CONFIG_FILE"
 . $BORG_CONFIG_FILE
 
 # Use BACKUP_LOCATIONS from config file if not set by command-line argument
@@ -409,6 +421,7 @@ KEEP_DAILY=${KEEP_DAILY:-$DEFAULT_KEEP_DAILY}
 KEEP_WEEKLY=${KEEP_WEEKLY:-$DEFAULT_KEEP_WEEKLY}
 KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
 
+log "Checking if repo needs to be initialized"
 initialize_borg_repo
 
 
