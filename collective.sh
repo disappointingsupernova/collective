@@ -16,7 +16,7 @@ function find_command() {
     local path
     path=$(which "$cmd")
     if [ -z "$path" ]; then
-        log "Error: $cmd not found. Please ensure it is installed and available in your PATH."
+        log "ERROR" "Command $cmd not found. Please ensure it is installed and available in your PATH."
         exit 1
     fi
     echo "$path"
@@ -33,30 +33,30 @@ TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; 
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
 
 log() {
-    local message="$(date) $*"
+    local level="$1"
+    shift
+    local message="$(date) [$level] $*"
     echo "$message" | $TEE_CMD -a $OUTPUT_FILE
     echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
 } || {
     echo "$(date) [ERROR] Failed to log message: $message" >> "$OUTPUT_FILE"
 }
 
-log "GitHub settings initialized."
-
-log "All necessary commands have been located."
-
-log "Temporary directory created: $TEMP_DIR"
-log "Logging initalized"
+log "INFO" "GitHub settings initialized."
+log "INFO" "All necessary commands have been located."
+log "INFO" "Temporary directory created: $TEMP_DIR"
+log "INFO" "Logging initialized."
 
 # Change to a safe directory
 cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
-log "Changed to /tmp directory."
+log "INFO" "Changed to /tmp directory."
 
 # Script version
-SCRIPT_VERSION="1.1"
-log "Script version: $SCRIPT_VERSION"
+SCRIPT_VERSION="1.1.1"
+log "INFO" "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
-log "Email recipient set to $EMAIL_RECIPIENT"
+log "INFO" "Email recipient set to $EMAIL_RECIPIENT"
 
 # Default settings
 BORG_CONFIG_FILE="/root/.borg.settings"
@@ -72,21 +72,9 @@ DEFAULT_KEEP_DAILY="28"
 DEFAULT_KEEP_WEEKLY="8"
 DEFAULT_KEEP_MONTHLY="48"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
-log "Default settings initialized."
+log "INFO" "Default settings initialized."
 
-# Function to find the full path of a command
-function find_command() {
-    local cmd="$1"
-    local path
-    path=$(which "$cmd")
-    if [ -z "$path" ]; then
-        log "Error: $cmd not found. Please ensure it is installed and available in your PATH."
-        exit 1
-    fi
-    echo "$path"
-}
-
-log "Script Path: $SCRIPT_PATH"
+log "INFO" "Script Path: $SCRIPT_PATH"
 
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
@@ -94,28 +82,27 @@ check_installation() {
         read -p "Do you want to install $DISPLAY_NAME to /usr/bin/$REPO_NAME? [Y/n]: " response
         response=${response:-yes}
         if [[ "$response" =~ ^[Yy] ]]; then
-            log "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
+            log "INFO" "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
             if cp "$SCRIPT_PATH" /usr/bin/$REPO_NAME; then
                 chmod +x /usr/bin/$REPO_NAME
-                log "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
-                log "Removing script from the current location."
+                log "INFO" "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
+                log "INFO" "Removing script from the current location."
                 rm -f "$SCRIPT_PATH"
                 exit 0
             else
-                log "Failed to install $DISPLAY_NAME to /usr/bin/$REPO_NAME."
+                log "ERROR" "Failed to install $DISPLAY_NAME to /usr/bin/$REPO_NAME."
             fi
         else
-            log "Skipping installation to /usr/bin/$REPO_NAME."
+            log "INFO" "Skipping installation to /usr/bin/$REPO_NAME."
         fi
     else
-        log "$DISPLAY_NAME is already installed in /usr/bin/$REPO_NAME."
+        log "INFO" "$DISPLAY_NAME is already installed in /usr/bin/$REPO_NAME."
     fi
 }
 
-
 send_email() {
     if ! $GPG_CMD --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE; then
-        log "Failed to sign and encrypt email."
+        log "ERROR" "Failed to sign and encrypt email."
         return 1
     fi
 
@@ -133,11 +120,11 @@ send_email() {
         echo
         echo "--COLLECTIVE-BOUNDARY--"
     } | $SENDMAIL_CMD -t; then
-        log "Failed to send email."
+        log "ERROR" "Failed to send email."
         return 1
     fi
 
-    log "Email sent successfully to $EMAIL_RECIPIENT."
+    log "INFO" "Email sent successfully to $EMAIL_RECIPIENT."
 }
 
 handle_exit() {
@@ -145,28 +132,28 @@ handle_exit() {
     FAILED_FLAG_FILE="/root/.borglastrun.failed"
 
     if [ $EXIT_CODE -eq 0 ]; then
-        log "Backup and Prune finished successfully"
+        log "INFO" "Backup and Prune finished successfully"
         [ -n "$ON_SUCCESS" ] && eval "$ON_SUCCESS"
         SUBJECT="borg SUCCESS: $(hostname) - $DISPLAY_NAME"
         
         # Remove the failed flag file if it exists
         if [ -f "$FAILED_FLAG_FILE" ]; then
             rm -f "$FAILED_FLAG_FILE"
-            log "Removed $FAILED_FLAG_FILE after successful backup."
+            log "INFO" "Removed $FAILED_FLAG_FILE after successful backup."
         fi
         
     elif [ $EXIT_CODE -eq 1 ]; then
-        log "Backup and Prune finished with warnings"
+        log "WARNING" "Backup and Prune finished with warnings"
         [ -n "$ON_WARNING" ] && eval "$ON_WARNING"
         SUBJECT="borg WARNING: $(hostname) - $remote_storage_location - $DISPLAY_NAME"
     else
-        log "Backup and Prune finished with errors"
+        log "ERROR" "Backup and Prune finished with errors"
         [ -n "$ON_FAILURE" ] && eval "$ON_FAILURE"
         SUBJECT="borg FAILURE: $(hostname) @ $(date) - $remote_storage_location - $DISPLAY_NAME"
         
         # Create the failed flag file
         echo "1" > "$FAILED_FLAG_FILE"
-        log "Created $FAILED_FLAG_FILE due to backup failure."
+        log "INFO" "Created $FAILED_FLAG_FILE due to backup failure."
     fi
 
     send_email "$SUBJECT"
@@ -200,7 +187,6 @@ Options:
   -u, --update=force   Force update the script to the latest version from GitHub even if the current version is the latest
   -v, --version    Show the script version and exit
   -h, --help       Show this help message and exit
-  --dry-run        Perform a trial run with no changes made; useful for testing
   --keep-within    Specify the time interval to keep backups (default: 14d)
                    Example: --keep-within 7d
   --keep-hourly    Specify the number of hourly backups to keep (default: 24)
@@ -210,7 +196,8 @@ Options:
   --keep-weekly    Specify the number of weekly backups to keep (default: 8)
                    Example: --keep-weekly 4
   --keep-monthly   Specify the number of monthly backups to keep (default: 48)
-                   Example: --keep-monthly 12"
+                   Example: --keep-monthly 12
+  --dry-run        Perform a trial run with no changes made"
 }
 
 show_version() {
@@ -219,60 +206,60 @@ show_version() {
 
 install_borg() {
     if [ -f /etc/debian_version ]; then
-        log "Installing BorgBackup on Debian-based system..."
-        apt-get update && apt-get install -y borgbackup || { log "Failed to install BorgBackup on Debian-based system."; exit 1; }
+        log "INFO" "Installing BorgBackup on Debian-based system..."
+        apt-get update && apt-get install -y borgbackup || { log "ERROR" "Failed to install BorgBackup on Debian-based system."; exit 1; }
     elif [ -f /etc/redhat-release ]; then
-        log "Installing BorgBackup on RedHat-based system..."
-        yum install -y epel-release && yum install -y borgbackup || { log "Failed to install BorgBackup on RedHat-based system."; exit 1; }
+        log "INFO" "Installing BorgBackup on RedHat-based system..."
+        yum install -y epel-release && yum install -y borgbackup || { log "ERROR" "Failed to install BorgBackup on RedHat-based system."; exit 1; }
     else
-        log "Unsupported OS. Please install BorgBackup manually."
+        log "ERROR" "Unsupported OS. Please install BorgBackup manually."
         exit 1
     fi
-    log "BorgBackup installed successfully."
+    log "INFO" "BorgBackup installed successfully."
 }
 
 install_sendmail() {
     if [ -f /etc/debian_version ]; then
-        log "Installing sendmail on Debian-based system..."
-        apt-get install -y sendmail || { log "Failed to install sendmail on Debian-based system."; exit 1; }
+        log "INFO" "Installing sendmail on Debian-based system..."
+        apt-get install -y sendmail || { log "ERROR" "Failed to install sendmail on Debian-based system."; exit 1; }
     elif [ -f /etc/redhat-release ]; then
-        log "Installing sendmail on RedHat-based system..."
-        yum install -y sendmail || { log "Failed to install sendmail on RedHat-based system."; exit 1; }
+        log "INFO" "Installing sendmail on RedHat-based system..."
+        yum install -y sendmail || { log "ERROR" "Failed to install sendmail on RedHat-based system."; exit 1; }
     else
-        log "Unsupported OS. Please install sendmail manually."
+        log "ERROR" "Unsupported OS. Please install sendmail manually."
         exit 1
     fi
-    log "sendmail installed successfully."
+    log "INFO" "sendmail installed successfully."
 }
 
 check_borg_installed() {
     if ! $BORG_CMD > /dev/null; then
-        log "BorgBackup not found. Installing..."
+        log "INFO" "BorgBackup not found. Installing..."
         install_borg
     else
-        log "BorgBackup is already installed."
+        log "INFO" "BorgBackup is already installed."
     fi
 }
 
 check_sendmail_installed() {
-    log "sendmail check function invoked"
+    log "INFO" "sendmail check function invoked"
     if ! command -v sendmail > /dev/null; then
-        log "sendmail not found. Installing..."
+        log "INFO" "sendmail not found. Installing..."
         install_sendmail
     else
-        log "sendmail is already installed."
+        log "INFO" "sendmail is already installed."
     fi
 }
 
 check_gpg_key_installed() {
     if ! $GPG_CMD --list-keys $GPG_KEY_FINGERPRINT > /dev/null 2>&1; then
-        log "GPG key with fingerprint $GPG_KEY_FINGERPRINT not found. Importing..."
+        log "INFO" "GPG key with fingerprint $GPG_KEY_FINGERPRINT not found. Importing..."
         if ! $GPG_CMD --keyserver keyserver.ubuntu.com --recv-keys $GPG_KEY_FINGERPRINT; then
-            log "Failed to import GPG key."
+            log "ERROR" "Failed to import GPG key."
             exit 1
         fi
     fi
-    log "GPG key is installed."
+    log "INFO" "GPG key is installed."
 }
 
 generate_passphrase() {
@@ -280,7 +267,7 @@ generate_passphrase() {
 }
 
 prompt_for_config() {
-    log "Borg configuration file not found. Prompting for config..."
+    log "INFO" "Borg configuration file not found. Prompting for config..."
     read -p "Enter the remote username: " USERNAME
     read -p "Enter the remote server address (default: borg.sarik.tech): " remote_server_address
     remote_server_address=${remote_server_address:-borg.sarik.tech}
@@ -293,7 +280,7 @@ prompt_for_config() {
 
     if [ -z "$BORG_PASSPHRASE" ]; then
         BORG_PASSPHRASE=$(generate_passphrase)
-        log "Generated secure BORG_PASSPHRASE."
+        log "INFO" "Generated secure BORG_PASSPHRASE."
     fi
 
 cat <<EOF > $BORG_CONFIG_FILE
@@ -306,6 +293,7 @@ remote_storage_location="\$USERNAME@\$remote_server_address:\$remote_ssh_port/mo
 BACKUP_LOCATIONS="$DEFAULT_BACKUP_LOCATIONS"
 EXCLUDE_LIST="$DEFAULT_EXCLUDE_LIST"
 KEEP_WITHIN="$DEFAULT_KEEP_WITHIN"
+KEEP_HOURLY="$DEFAULT_KEEP_HOURLY"
 KEEP_DAILY="$DEFAULT_KEEP_DAILY"
 KEEP_WEEKLY="$DEFAULT_KEEP_WEEKLY"
 KEEP_MONTHLY="$DEFAULT_KEEP_MONTHLY"
@@ -316,57 +304,57 @@ export BORG_RSH="ssh -4 -i \$remote_ssh_key"
 export BORG_PASSPHRASE='$BORG_PASSPHRASE'
 EOF
 
-    log "Borg configuration file created at $BORG_CONFIG_FILE."
+    log "INFO" "Borg configuration file created at $BORG_CONFIG_FILE."
 }
 
 initialize_borg_repo() {
     if ! $BORG_CMD info > /dev/null 2>&1; then
-        log "Borg repository not initialized. Initializing now."
+        log "INFO" "Borg repository not initialized. Initializing now."
         if $BORG_CMD init -e repokey; then
-            log "Borg repository initialized successfully."
+            log "INFO" "Borg repository initialized successfully."
             $BORG_CMD key export :: > $TEMP_DIR/repo-key.bak
-            log "Borg repository key exported."
+            log "INFO" "Borg repository key exported."
         else
-            log "Failed to initialize Borg repository."
+            log "ERROR" "Failed to initialize Borg repository."
             exit 1
         fi
     else
-        log "Borg repository already initialized."
+        log "INFO" "Borg repository already initialized."
     fi
 }
 
 update_script() {
-    log "Checking for script updates..."
+    log "INFO" "Checking for script updates..."
     LATEST_VERSION=$($CURL_CMD -sSL $VERSION_URL)
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
-        log "Updating script from $GITHUB_URL..."
+        log "INFO" "Updating script from $GITHUB_URL..."
         if $CURL_CMD -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"; then
-            log "Script updated to version $LATEST_VERSION."
+            log "INFO" "Script updated to version $LATEST_VERSION."
             exit 0
         else
-            log "Failed to update script."
+            log "ERROR" "Failed to update script."
             exit 1
         fi
     else
-        log "You are already using the latest version ($SCRIPT_VERSION)."
+        log "INFO" "You are already using the latest version ($SCRIPT_VERSION)."
         exit 0
     fi
 }
 
 force_update_script() {
-    log "Forcing script update from $GITHUB_URL..."
+    log "INFO" "Forcing script update from $GITHUB_URL..."
     if $CURL_CMD -o "$0" -sSL "$GITHUB_URL" && chmod +x "$0"; then
-        log "Script reinstalled successfully."
+        log "INFO" "Script reinstalled successfully."
         exit 0
     else
-        log "Failed to force update script."
+        log "ERROR" "Failed to force update script."
         exit 1
     fi
 }
 
-trap 'log "Backup interrupted"; handle_exit 2; exit 2' INT TERM
+trap 'log "ERROR" "Backup interrupted"; handle_exit 2; exit 2' INT TERM
 
-log "Checking installation..."
+log "INFO" "Checking installation..."
 check_installation
 
 # Parse command-line arguments
@@ -452,40 +440,40 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           DRY_RUN=true
           ;;
         *)
-          log "Invalid option: --${OPTARG}"
+          log "ERROR" "Invalid option: --${OPTARG}"
           show_help
           exit 1
           ;;
       esac
       ;;
     \? )
-      log "Invalid option: $OPTARG"
+      log "ERROR" "Invalid option: $OPTARG"
       show_help
       exit 1
       ;;
     : )
-      log "Invalid option: $OPTARG requires an argument"
+      log "ERROR" "Invalid option: $OPTARG requires an argument"
       show_help
       exit 1
       ;;
   esac
 done
 
-log "Check that borg is installed"
-check_borg_installed  || { log "Failed during borg installation check."; exit 1; }
+log "INFO" "Check that borg is installed"
+check_borg_installed  || { log "ERROR" "Failed during borg installation check."; exit 1; }
 
-log "Checking for sendmail installation..."
-check_sendmail_installed || { log "Failed during sendmail check."; exit 1; }
+log "INFO" "Checking for sendmail installation..."
+check_sendmail_installed || { log "ERROR" "Failed during sendmail check."; exit 1; }
 
-log "Checking for GPG key installation..."
-check_gpg_key_installed || { log "Failed during GPG key check."; exit 1; }
+log "INFO" "Checking for GPG key installation..."
+check_gpg_key_installed || { log "ERROR" "Failed during GPG key check."; exit 1; }
 
-log "Checking if the borg config exists"
+log "INFO" "Checking if the borg config exists"
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
 
-log "Importing $BORG_CONFIG_FILE"
+log "INFO" "Importing $BORG_CONFIG_FILE"
 . $BORG_CONFIG_FILE
 
 # Use BACKUP_LOCATIONS from config file if not set by command-line argument
@@ -505,7 +493,7 @@ KEEP_DAILY=${KEEP_DAILY:-$DEFAULT_KEEP_DAILY}
 KEEP_WEEKLY=${KEEP_WEEKLY:-$DEFAULT_KEEP_WEEKLY}
 KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
 
-log "Checking if Borg repo needs to be initialized"
+log "INFO" "Checking if Borg repo needs to be initialized"
 initialize_borg_repo
 
 # Prepare exclude options
@@ -521,20 +509,20 @@ if [ -n "$REMOTE_PATH" ]; then
     REMOTE_OPTS="--remote-path=$REMOTE_PATH"
 fi
 
-log "Starting Backup with locations: $BACKUP_LOCATIONS"
-log "Excluding: $EXCLUDE_OPTS"
+log "INFO" "Starting Backup with locations: $BACKUP_LOCATIONS"
+log "INFO" "Excluding: $EXCLUDE_OPTS"
 
 # Backup
 if ! $BORG_CMD create ${DRY_RUN:+--dry-run} --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
-    log "Borg create command failed."
+    log "ERROR" "Borg create command failed."
     handle_exit 1
     exit 1
 fi
 
 backup_exit=${PIPESTATUS[0]}
 
-log "Pruning Repository"
-log "$BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
+log "INFO" "Pruning Repository"
+log "INFO" "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
 if ! $BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc \
@@ -543,7 +531,7 @@ if ! $BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*'
     --keep-daily $KEEP_DAILY \
     --keep-weekly $KEEP_WEEKLY \
     --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
-    log "Borg prune command failed."
+    log "ERROR" "Borg prune command failed."
     handle_exit 1
     exit 1
 fi
