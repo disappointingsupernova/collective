@@ -1,6 +1,12 @@
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+log() {
+    local message="$(date) $*"
+    echo "$message" | $TEE_CMD -a $OUTPUT_FILE
+    echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
+}
+
 # Change to a safe directory
 cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
 log "Changed to /tmp directory."
@@ -80,12 +86,6 @@ check_installation() {
             echo "Skipping installation to /usr/bin/$REPO_NAME."
         fi
     fi
-}
-
-log() {
-    local message="$(date) $*"
-    echo "$message" | $TEE_CMD -a $OUTPUT_FILE
-    echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
 }
 
 send_email() {
