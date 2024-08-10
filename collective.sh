@@ -3,8 +3,8 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 log() {
     local message="$(date) $*"
-    echo "$message" | $TEE_CMD -a $OUTPUT_FILE
-    echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
+    echo "$message" | $TEE_CMD -a "$OUTPUT_FILE"
+    $LOGGER_CMD -t "$DISPLAY_NAME" "$message"
 }
 
 # Change to a safe directory
