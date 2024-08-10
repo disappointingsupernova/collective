@@ -222,6 +222,7 @@ check_borg_installed() {
         install_borg
     else
         log "BorgBackup is already installed."
+        check_sendmail_installed
     fi
 }
 
@@ -231,6 +232,7 @@ check_sendmail_installed() {
         install_sendmail
     else
         log "sendmail is already installed."
+        check_gpg_key_installed
     fi
 }
 
@@ -435,9 +437,8 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
 done
 
 check_borg_installed
-check_sendmail_installed
-check_gpg_key_installed
 
+log "Checking if the borg config exists"
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
