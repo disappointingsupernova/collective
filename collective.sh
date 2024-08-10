@@ -46,6 +46,7 @@ GPG_CMD=$(find_command gpg)
 CURL_CMD=$(find_command curl)
 BORG_CMD=$(find_command borg)
 TEE_CMD=$(find_command tee)
+LOGGER_CMD=$(find_command logger)
 
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
@@ -67,7 +68,9 @@ check_installation() {
 }
 
 log() {
-    echo "$(date) $*" | $TEE_CMD -a $OUTPUT_FILE
+    local message="$(date) $*"
+    echo "$message" | $TEE_CMD -a $OUTPUT_FILE
+    echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
 }
 
 send_email() {
