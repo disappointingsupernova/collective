@@ -514,7 +514,7 @@ fi
 backup_exit=${PIPESTATUS[0]}
 
 log "Pruning Repository"
-log "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
+log "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
 if ! $BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc \
