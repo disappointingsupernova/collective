@@ -67,6 +67,7 @@ ON_SUCCESS=""
 ON_WARNING=""
 ON_FAILURE=""
 DEFAULT_KEEP_WITHIN="14d"
+DEFAULT_KEEP_HOURLY="24"
 DEFAULT_KEEP_DAILY="28"
 DEFAULT_KEEP_WEEKLY="8"
 DEFAULT_KEEP_MONTHLY="48"
@@ -414,6 +415,10 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           KEEP_WITHIN="$2"
           shift
           ;;
+        keep-hourly)
+          KEEP_HOURLY="$2"
+          shift
+          ;;
         keep-daily)
           KEEP_DAILY="$2"
           shift
@@ -475,6 +480,7 @@ fi
 
 # Use prune options from config file if not set by command-line argument
 KEEP_WITHIN=${KEEP_WITHIN:-$DEFAULT_KEEP_WITHIN}
+KEEP_HOURLY=${KEEP_HOURLY:-$DEFAULT_KEEP_HOURLY}
 KEEP_DAILY=${KEEP_DAILY:-$DEFAULT_KEEP_DAILY}
 KEEP_WEEKLY=${KEEP_WEEKLY:-$DEFAULT_KEEP_WEEKLY}
 KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
@@ -513,6 +519,7 @@ log "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-with
 # Prune
 if ! $BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc \
     --keep-within $KEEP_WITHIN \
+    --keep-hourly $KEEP_HOURLY \
     --keep-daily $KEEP_DAILY \
     --keep-weekly $KEEP_WEEKLY \
     --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
