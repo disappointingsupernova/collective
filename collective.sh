@@ -34,6 +34,8 @@ log() {
     local message="$(date) $*"
     echo "$message" | $TEE_CMD -a $OUTPUT_FILE
     echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
+} || {
+    echo "$(date) [ERROR] Failed to log message: $message" >> "$OUTPUT_FILE"
 }
 
 log "GitHub settings initialized."
