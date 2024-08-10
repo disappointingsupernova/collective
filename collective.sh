@@ -1,5 +1,12 @@
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+GITHUB_ACCOUNT="disappointingsupernova"
+REPO_NAME="collective"
+SCRIPT_NAME="collective.sh"
+DISPLAY_NAME="Collective"
+GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
+VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
+log "GitHub settings initialized."
 
 # Function to find the full path of a command
 function find_command() {
@@ -57,18 +64,8 @@ DEFAULT_KEEP_WITHIN="14d"
 DEFAULT_KEEP_DAILY="28"
 DEFAULT_KEEP_WEEKLY="8"
 DEFAULT_KEEP_MONTHLY="48"
-
-log "Default settings initialized."
-
-GITHUB_ACCOUNT="disappointingsupernova"
-REPO_NAME="collective"
-SCRIPT_NAME="collective.sh"
-DISPLAY_NAME="Collective"
-GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
-VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
-
-log "GitHub and GPG settings initialized."
+log "Default settings initialized."
 
 # Function to find the full path of a command
 function find_command() {
@@ -439,6 +436,7 @@ done
 check_borg_installed
 
 log "Checking if the borg config exists"
++++-
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
