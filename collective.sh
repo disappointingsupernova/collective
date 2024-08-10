@@ -564,6 +564,7 @@ fi
 
 log "INFO" "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "INFO" "Excluding: $EXCLUDE_OPTS"
+log "INFO" "$BORG_CMD create ${DRY_RUN:+--dry-run} --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS"
 
 # Backup
 if ! $BORG_CMD create ${DRY_RUN:+--dry-run} --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS 2>&1 | $TEE_CMD -a $OUTPUT_FILE; then
@@ -575,7 +576,7 @@ fi
 backup_exit=${PIPESTATUS[0]}
 
 log "INFO" "Pruning Repository"
-log "INFO" "$BORG_CMD prune --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
+log "INFO" "$BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc --keep-within $KEEP_WITHIN --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY $REMOTE_OPTS"
 
 # Prune
 if ! $BORG_CMD prune ${DRY_RUN:+--dry-run} --list --glob-archives '{hostname}-*' --show-rc \
