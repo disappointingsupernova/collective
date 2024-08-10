@@ -98,6 +98,58 @@ check_installation() {
     fi
 }
 
+validate_config() {
+    local config_file="$1"
+
+    log "INFO" "Validating configuration file: $config_file"
+
+    if [ ! -f "$config_file" ]; then
+        log "ERROR" "Configuration file $config_file not found!"
+        exit 1
+    fi
+
+    # Load the configuration file
+    source "$config_file"
+
+    # Check required variables
+    if [ -z "$remote_ssh_port" ]; then
+        log "ERROR" "Configuration error: 'remote_ssh_port' is not set."
+        exit 1
+    fi
+
+    if [ -z "$remote_ssh_key" ] || [ ! -f "$remote_ssh_key" ]; then
+        log "ERROR" "Configuration error: 'remote_ssh_key' is not set or does not exist."
+        exit 1
+    fi
+
+    if [ -z "$remote_server_address" ]; then
+        log "ERROR" "Configuration error: 'remote_server_address' is not set."
+        exit 1
+    fi
+
+    if [ -z "$USERNAME" ]; then
+        log "ERROR" "Configuration error: 'USERNAME' is not set."
+        exit 1
+    fi
+
+    if [ -z "$BORG_PASSPHRASE" ]; then
+        log "ERROR" "Configuration error: 'BORG_PASSPHRASE' is not set."
+        exit 1
+    fi
+
+    if [ -z "$BACKUP_LOCATIONS" ]; then
+        log "ERROR" "Configuration error: 'BACKUP_LOCATIONS' is not set."
+        exit 1
+    fi
+
+    if [ -z "$KEEP_WITHIN" ]; then
+        log "ERROR" "Configuration error: 'KEEP_WITHIN' is not set."
+        exit 1
+    fi
+
+    log "INFO" "Configuration file validated successfully."
+}
+
 send_email() {
     if ! $GPG_CMD --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE; then
         log "ERROR" "Failed to sign and encrypt email."
@@ -470,6 +522,9 @@ log "INFO" "Checking if the borg config exists"
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
+
+log "INFO" "Checking if the borg config is valid"
+validate_config "$BORG_CONFIG_FILE"
 
 log "INFO" "Importing $BORG_CONFIG_FILE"
 . $BORG_CONFIG_FILE
