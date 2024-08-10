@@ -2,7 +2,7 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Change to a safe directory
-cd ~
+cd /tmp
 
 # Script version
 SCRIPT_VERSION="1.0.11"
