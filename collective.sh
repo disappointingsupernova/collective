@@ -443,7 +443,6 @@ log "Checking for GPG key installation..."
 check_gpg_key_installed || { log "Failed during GPG key check."; exit 1; }
 
 log "Checking if the borg config exists"
-+++-
 if [ ! -f "$BORG_CONFIG_FILE" ]; then
     prompt_for_config
 fi
