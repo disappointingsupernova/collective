@@ -26,9 +26,9 @@ SENDMAIL_CMD=$(find_command sendmail)
 GPG_CMD=$(find_command gpg)
 CURL_CMD=$(find_command curl)
 BORG_CMD=$(find_command borg)
+MYSQLDUMP_CMD=$(find_command mysqldump)
 TEE_CMD=$(find_command tee)
 LOGGER_CMD=$(find_command logger)
-MYSQLDUMP_CMD=$(find_command mysqldump)
 
 TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; }
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
@@ -73,8 +73,6 @@ DEFAULT_KEEP_DAILY="28"
 DEFAULT_KEEP_WEEKLY="8"
 DEFAULT_KEEP_MONTHLY="48"
 GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
-MYSQL_BACKUP=""
-LEAVE_SQL_BACKUP=false
 log "INFO" "Default settings initialized."
 
 log "INFO" "Script Path: $SCRIPT_PATH"
@@ -252,10 +250,11 @@ Options:
                    Example: --keep-weekly 4
   --keep-monthly   Specify the number of monthly backups to keep (default: 48)
                    Example: --keep-monthly 12
-  --mysql-backup   Backup MySQL databases. Use 'all' to back up all databases or specify a database name.
-                   Example: --mysql-backup=all
-                            --mysql-backup=mydatabase
-  --leave-sql-backup  Do not delete the MySQL backup after the Borg backup completes.
+  --mysql-backup   Backup MySQL database(s). Use 'all' for all databases or specify a database name.
+                   Example: --mysql-backup all
+                   Example: --mysql-backup database_name
+  --mysql-backup-gzip  Compress the MySQL backup with gzip.
+  --leave-sql-backup   Do not delete the SQL backup after the Borg backup.
   --dry-run        Perform a trial run with no changes made"
 }
 
@@ -382,6 +381,48 @@ initialize_borg_repo() {
     fi
 }
 
+mysql_backup() {
+    local backup_dir="/backups/$DISPLAY_NAME/mysql"
+    mkdir -p "$backup_dir"
+
+    if [ -z "$MYSQL_BACKUP" ] || [ "$MYSQL_BACKUP" == "all" ]; then
+        log "INFO" "Backing up all MySQL databases"
+        backup_file="$backup_dir/all_databases_$(date +%F_%T).sql"
+        if [ "$MYSQL_BACKUP_GZIP" = true ]; then
+            backup_file="${backup_file}.gz"
+            if ! $MYSQLDUMP_CMD --single-transaction --all-databases | gzip > "$backup_file"; then
+                log "ERROR" "Failed to backup all MySQL databases"
+                handle_exit 1
+            fi
+        else
+            if ! $MYSQLDUMP_CMD --single-transaction --all-databases > "$backup_file"; then
+                log "ERROR" "Failed to backup all MySQL databases"
+                handle_exit 1
+            fi
+        fi
+        log "INFO" "All MySQL databases backed up to $backup_file"
+    else
+        log "INFO" "Backing up MySQL database: $MYSQL_BACKUP"
+        backup_file="$backup_dir/${MYSQL_BACKUP}_$(date +%F_%T).sql"
+        if [ "$MYSQL_BACKUP_GZIP" = true ]; then
+            backup_file="${backup_file}.gz"
+            if ! $MYSQLDUMP_CMD --single-transaction "$MYSQL_BACKUP" | gzip > "$backup_file"; then
+                log "ERROR" "Failed to backup MySQL database: $MYSQL_BACKUP"
+                handle_exit 1
+            fi
+        else
+            if ! $MYSQLDUMP_CMD --single-transaction "$MYSQL_BACKUP" > "$backup_file"; then
+                log "ERROR" "Failed to backup MySQL database: $MYSQL_BACKUP"
+                handle_exit 1
+            fi
+        fi
+        log "INFO" "MySQL database $MYSQL_BACKUP backed up to $backup_file"
+    fi
+
+    # Add the backup directory to the backup locations
+    BACKUP_LOCATIONS="$BACKUP_LOCATIONS $backup_dir"
+}
+
 update_script() {
     log "INFO" "Checking for script updates..."
     LATEST_VERSION=$($CURL_CMD -sSL $VERSION_URL)
@@ -409,32 +450,6 @@ force_update_script() {
         log "ERROR" "Failed to force update script."
         exit 1
     fi
-}
-
-mysql_backup() {
-    local backup_dir="/backups/$DISPLAY_NAME/mysql"
-    mkdir -p "$backup_dir"
-
-    if [ "$MYSQL_BACKUP" = "all" ]; then
-        log "INFO" "Backing up all MySQL databases"
-        backup_file="$backup_dir/all_databases_$(date +%F_%T).sql.gz"
-        if ! $MYSQLDUMP_CMD --single-transaction --all-databases | gzip > "$backup_file"; then
-            log "ERROR" "Failed to backup all MySQL databases"
-            handle_exit 1
-        fi
-        log "INFO" "All MySQL databases backed up to $backup_file"
-    else
-        log "INFO" "Backing up MySQL database: $MYSQL_BACKUP"
-        backup_file="$backup_dir/${MYSQL_BACKUP}_$(date +%F_%T).sql.gz"
-        if ! $MYSQLDUMP_CMD --single-transaction "$MYSQL_BACKUP" | gzip > "$backup_file"; then
-            log "ERROR" "Failed to backup MySQL database: $MYSQL_BACKUP"
-            handle_exit 1
-        fi
-        log "INFO" "MySQL database $MYSQL_BACKUP backed up to $backup_file"
-    fi
-
-    # Add the backup directory to the backup locations
-    BACKUP_LOCATIONS="$BACKUP_LOCATIONS $backup_dir"
 }
 
 trap 'log "ERROR" "Backup interrupted"; handle_exit 2; exit 2' INT TERM
@@ -522,8 +537,11 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
           shift
           ;;
         mysql-backup)
-          MYSQL_BACKUP="$2"
+          MYSQL_BACKUP="${2:-all}"
           shift
+          ;;
+        mysql-backup-gzip)
+          MYSQL_BACKUP_GZIP=true
           ;;
         leave-sql-backup)
           LEAVE_SQL_BACKUP=true
@@ -571,7 +589,7 @@ validate_config "$BORG_CONFIG_FILE"
 log "INFO" "Importing $BORG_CONFIG_FILE"
 . $BORG_CONFIG_FILE
 
-# Run MySQL backup if the option is set
+# Perform MySQL backup if requested
 if [ -n "$MYSQL_BACKUP" ]; then
     mysql_backup
 fi
@@ -646,10 +664,11 @@ global_exit=$(( compact_exit > global_exit ? compact_exit : global_exit ))
 
 handle_exit $global_exit
 
-# Cleanup MySQL backups unless --leave-sql-backup is specified
-if [ "$LEAVE_SQL_BACKUP" = false ]; then
-    log "INFO" "Removing MySQL backups from $BACKUP_LOCATIONS"
-    rm -rf "/backups/$DISPLAY_NAME/mysql"
+# Cleanup SQL backups if not told to leave them
+if [ -z "$LEAVE_SQL_BACKUP" ]; then
+    log "INFO" "Deleting SQL backup files..."
+    rm -rf /backups/$DISPLAY_NAME/mysql
+    log "INFO" "SQL backup files deleted."
 fi
 
 # Cleanup
