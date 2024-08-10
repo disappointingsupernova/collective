@@ -22,12 +22,10 @@ function find_command() {
     echo "$path"
 }
 
-SENDMAIL_CMD=$(find_command sendmail)
-GPG_CMD=$(find_command gpg)
-CURL_CMD=$(find_command curl)
-BORG_CMD=$(find_command borg)
-TEE_CMD=$(find_command tee)
-LOGGER_CMD=$(find_command logger)
+REQUIRED_CMDS=("sendmail" "gpg" "curl" "borg" "tee" "logger")
+for cmd in "${REQUIRED_CMDS[@]}"; do
+    find_command "$cmd"
+done
 
 TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; }
 OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
