@@ -6,7 +6,7 @@ SCRIPT_NAME="collective.sh"
 DISPLAY_NAME="Collective"
 GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
-log "GitHub settings initialized."
+
 
 # Function to find the full path of a command
 function find_command() {
@@ -35,6 +35,8 @@ log() {
     echo "$message" | $TEE_CMD -a $OUTPUT_FILE
     echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
 }
+
+log "GitHub settings initialized."
 
 log "All necessary commands have been located."
 
@@ -219,7 +221,6 @@ check_borg_installed() {
         install_borg
     else
         log "BorgBackup is already installed."
-        check_sendmail_installed
     fi
 }
 
@@ -229,7 +230,6 @@ check_sendmail_installed() {
         install_sendmail
     else
         log "sendmail is already installed."
-        check_gpg_key_installed
     fi
 }
 
@@ -433,7 +433,14 @@ while getopts ":c:l:e:s:w:f:r:uvh-:" opt; do
   esac
 done
 
-check_borg_installed
+log "Check that borg is installed"
+check_borg_installed  || { log "Failed during borg installation check."; exit 1; }
+
+log "Checking for sendmail installation..."
+check_sendmail_installed || { log "Failed during sendmail check."; exit 1; }
+
+log "Checking for GPG key installation..."
+check_gpg_key_installed || { log "Failed during GPG key check."; exit 1; }
 
 log "Checking if the borg config exists"
 +++-
