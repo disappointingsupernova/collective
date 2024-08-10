@@ -16,7 +16,7 @@ function find_command() {
     local path
     path=$(which "$cmd")
     if [ -z "$path" ]; then
-        log "ERROR" "Command $cmd not found. Please ensure it is installed and available in your PATH."
+        logger "Command $cmd not found. Please ensure it is installed and available in your PATH."
         exit 1
     fi
     echo "$path"
