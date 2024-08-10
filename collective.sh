@@ -1,18 +1,45 @@
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Function to find the full path of a command
+function find_command() {
+    local cmd="$1"
+    local path
+    path=$(which "$cmd")
+    if [ -z "$path" ]; then
+        log "Error: $cmd not found. Please ensure it is installed and available in your PATH."
+        exit 1
+    fi
+    echo "$path"
+}
+
+SENDMAIL_CMD=$(find_command sendmail)
+GPG_CMD=$(find_command gpg)
+CURL_CMD=$(find_command curl)
+BORG_CMD=$(find_command borg)
+TEE_CMD=$(find_command tee)
+LOGGER_CMD=$(find_command logger)
+
+TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; }
+OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
+
 log() {
     local message="$(date) $*"
-    echo "$message" | $TEE_CMD -a "$OUTPUT_FILE"
-    $LOGGER_CMD -t "$DISPLAY_NAME" "$message"
+    echo "$message" | $TEE_CMD -a $OUTPUT_FILE
+    echo "$message" | $LOGGER_CMD -t "$DISPLAY_NAME"
 }
+
+log "All necessary commands have been located."
+
+log "Temporary directory created: $TEMP_DIR"
+log "Logging initalized"
 
 # Change to a safe directory
 cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
 log "Changed to /tmp directory."
 
 # Script version
-SCRIPT_VERSION="1.0.12"
+SCRIPT_VERSION="1.0.13"
 log "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
@@ -43,11 +70,6 @@ GPG_KEY_FINGERPRINT="7D2D35B359A3BB1AE7A2034C0CB5BB0EFE677CA8"
 
 log "GitHub and GPG settings initialized."
 
-TEMP_DIR=$(mktemp -d) || { echo "Failed to create temporary directory"; exit 1; }
-OUTPUT_FILE="$TEMP_DIR/${REPO_NAME}_pgp_message.txt"
-
-log "Temporary directory created: $TEMP_DIR"
-
 # Function to find the full path of a command
 function find_command() {
     local cmd="$1"
@@ -59,15 +81,6 @@ function find_command() {
     fi
     echo "$path"
 }
-
-SENDMAIL_CMD=$(find_command sendmail)
-GPG_CMD=$(find_command gpg)
-CURL_CMD=$(find_command curl)
-BORG_CMD=$(find_command borg)
-TEE_CMD=$(find_command tee)
-LOGGER_CMD=$(find_command logger)
-
-log "All necessary commands have been located."
 
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
