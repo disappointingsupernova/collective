@@ -7,6 +7,8 @@ DISPLAY_NAME="Collective"
 GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 
+# Determine the script's own path
+SCRIPT_PATH=$(realpath "$0")
 
 # Function to find the full path of a command
 function find_command() {
@@ -83,24 +85,32 @@ function find_command() {
     echo "$path"
 }
 
+log "Script Path: $SCRIPT_PATH"
+
 # Function to check if the script is installed in /usr/bin/$REPO_NAME
 check_installation() {
     if [ ! -f /usr/bin/$REPO_NAME ]; then
         read -p "Do you want to install $DISPLAY_NAME to /usr/bin/$REPO_NAME? [Y/n]: " response
         response=${response:-yes}
-        if [ "$response" = "y" ] || [ "$response" = "Y" ] || [ "$response" = "yes" ] || [ "$response" = "Yes" ]; then
+        if [[ "$response" =~ ^[Yy] ]]; then
             log "Installing $DISPLAY_NAME to /usr/bin/$REPO_NAME..."
-            cp "$0" /usr/bin/$REPO_NAME
-            chmod +x /usr/bin/$REPO_NAME
-            log "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
-            log "Removing script from the current location."
-            rm -f "$0"
-            exit 0
+            if cp "$SCRIPT_PATH" /usr/bin/$REPO_NAME; then
+                chmod +x /usr/bin/$REPO_NAME
+                log "$DISPLAY_NAME installed successfully to /usr/bin/$REPO_NAME."
+                log "Removing script from the current location."
+                rm -f "$SCRIPT_PATH"
+                exit 0
+            else
+                log "Failed to install $DISPLAY_NAME to /usr/bin/$REPO_NAME."
+            fi
         else
             log "Skipping installation to /usr/bin/$REPO_NAME."
         fi
+    else
+        log "$DISPLAY_NAME is already installed in /usr/bin/$REPO_NAME."
     fi
 }
+
 
 send_email() {
     if ! $GPG_CMD --sign --encrypt -a -r $GPG_KEY_FINGERPRINT $OUTPUT_FILE; then
