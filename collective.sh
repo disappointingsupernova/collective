@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Change to a safe directory
+cd ~
+
 # Script version
 SCRIPT_VERSION="1.0.11"
 
