@@ -144,7 +144,7 @@ handle_exit() {
     fi
     send_email "$SUBJECT"
     rm -rf $TEMP_DIR
-    log "Cleaned up temporary files."
+    echo "Cleaned up temporary files." | $LOGGER_CMD -t "$DISPLAY_NAME"
 }
 
 show_help() {
