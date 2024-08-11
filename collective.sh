@@ -60,7 +60,7 @@ cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
 log "INFO" "Changed to /tmp directory."
 
 # Script version
-SCRIPT_VERSION="1.1.2"
+SCRIPT_VERSION="1.1.3"
 log "INFO" "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
@@ -635,8 +635,6 @@ for EXCLUDE in "${EXCLUDES[@]}"; do
     EXCLUDE_OPTS+="--exclude $EXCLUDE "
 done
 
-
-
 log "INFO" "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "INFO" "Excluding: $EXCLUDE_OPTS"
 log "INFO" "$BORG_CMD create ${DRY_RUN:+--dry-run} --verbose --filter AME --list --stats --show-rc --compression lz4 --exclude-caches $EXCLUDE_OPTS $REMOTE_OPTS ::'{hostname}-{now}' $BACKUP_LOCATIONS"
@@ -699,4 +697,4 @@ _collective_completions() {
 }
 
 # Register the autocomplete function for this script
-complete -F _collective_completions ./collective.sh
+complete -F _collective_completions "$(basename "$0")"
