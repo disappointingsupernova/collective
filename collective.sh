@@ -7,6 +7,12 @@ DISPLAY_NAME="Collective"
 GITHUB_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/$SCRIPT_NAME"
 VERSION_URL="https://raw.githubusercontent.com/$GITHUB_ACCOUNT/$REPO_NAME/main/VERSION"
 
+# Source check: If the script is being sourced for auto-completion, register the completion and return
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    _collective_completions
+    return 0
+fi
+
 # Determine the script's own path
 SCRIPT_PATH=$(realpath "$0")
 
@@ -17,6 +23,7 @@ function find_command() {
     path=$(which "$cmd")
     if [ -z "$path" ]; then
         logger "Command $cmd not found. Please ensure it is installed and available in your PATH."
+        echo "Command $cmd not found. Please ensure it is installed and available in your PATH."
         exit 1
     fi
     echo "$path"
@@ -53,7 +60,7 @@ cd /tmp || { echo "Failed to change directory to /tmp"; exit 1; }
 log "INFO" "Changed to /tmp directory."
 
 # Script version
-SCRIPT_VERSION="1.1.1"
+SCRIPT_VERSION="1.1.2"
 log "INFO" "Script version: $SCRIPT_VERSION"
 
 EMAIL_RECIPIENT="$(hostname)@sarik.tech"
@@ -675,3 +682,18 @@ fi
 rm -rf $TEMP_DIR
 
 exit $global_exit
+
+# Function to provide autocomplete for options
+_collective_completions() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--help --version --update --update=force --remote --keep-within --keep-hourly --keep-daily --keep-weekly --keep-monthly --mysql-backup --mysql-backup-gzip --leave-sql-backup --dry-run -c -l -e -s -w -f -r -u -v -h"
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+
+# Register the autocomplete function for this script
+complete -F _collective_completions ./collective.sh
