@@ -373,11 +373,12 @@ EOF
 }
 
 initialize_borg_repo() {
-    if ! $BORG_CMD info > /dev/null 2>&1; then
+    if ! $BORG_CMD $REMOTE_OPTS info > /dev/null 2>&1; then
         log "INFO" "Borg repository not initialized. Initializing now."
-        if $BORG_CMD init -e repokey; then
+        if $BORG_CMD $REMOTE_OPTS init -e repokey; then
             log "INFO" "Borg repository initialized successfully."
-            $BORG_CMD key export :: > $TEMP_DIR/repo-key.bak
+            $BORG_CMD $REMOTE_OPTS key export :: > $TEMP_DIR/repo-key.bak
+            cat $TEMP_DIR/repo-key.bak
             log "INFO" "Borg repository key exported."
         else
             log "ERROR" "Failed to initialize Borg repository."
@@ -618,6 +619,12 @@ KEEP_DAILY=${KEEP_DAILY:-$DEFAULT_KEEP_DAILY}
 KEEP_WEEKLY=${KEEP_WEEKLY:-$DEFAULT_KEEP_WEEKLY}
 KEEP_MONTHLY=${KEEP_MONTHLY:-$DEFAULT_KEEP_MONTHLY}
 
+# Prepare remote path option
+REMOTE_OPTS=""
+if [ -n "$REMOTE_PATH" ]; then
+    REMOTE_OPTS="--remote-path=$REMOTE_PATH"
+fi
+
 log "INFO" "Checking if Borg repo needs to be initialized"
 initialize_borg_repo
 
@@ -628,11 +635,7 @@ for EXCLUDE in "${EXCLUDES[@]}"; do
     EXCLUDE_OPTS+="--exclude $EXCLUDE "
 done
 
-# Prepare remote path option
-REMOTE_OPTS=""
-if [ -n "$REMOTE_PATH" ]; then
-    REMOTE_OPTS="--remote-path=$REMOTE_PATH"
-fi
+
 
 log "INFO" "Starting Backup with locations: $BACKUP_LOCATIONS"
 log "INFO" "Excluding: $EXCLUDE_OPTS"
